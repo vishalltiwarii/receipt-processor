@@ -1,7 +1,7 @@
 from flask import current_app
 from app import db
 from app.models.receipt import ReceiptFile, Receipt, ReceiptItem
-from app.services.file_service import save_file, validate_pdf
+from app.services.file_service import save_file, validate_pdf, move_to_processed_folder
 from app.services.ocr_service import extract_text_from_pdf, parse_receipt
 import os
 
@@ -87,6 +87,13 @@ def process_receipt_file(receipt_file_id):
             total_price=item_data['total_price']
         )
         db.session.add(item)
+    
+    # Move file to processed folder
+    try:
+        new_path = move_to_processed_folder(receipt_file.file_path)
+        receipt_file.file_path = new_path
+    except Exception as e:
+        current_app.logger.error(f"Error moving file to processed folder: {str(e)}")
     
     # Mark receipt file as processed
     receipt_file.is_processed = True
